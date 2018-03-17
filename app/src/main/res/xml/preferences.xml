@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <EditTextPreference
+        android:key="pref_sync"
+        android:title="@string/setting_name"
+        android:defaultValue="User"
+        />
+
+    <EditTextPreference
+        android:key="pref_sync"
+        android:title="@string/setting_password"
+        android:defaultValue="Password"
+        android:password="true"
+        />
+
+    <EditTextPreference
+        android:key="pref_sync"
+        android:title="@string/setting_update_interval"
+        android:defaultValue="5"
+        />
+
+
+    <EditTextPreference
+        android:key="pref_sync"
+        android:title="@string/setting_server"
+        android:defaultValue="https://derandr.000webhostapp.com"
+        />
+
+
+</PreferenceScreen>
