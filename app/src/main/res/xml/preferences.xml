@@ -2,27 +2,28 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
 
     <EditTextPreference
-        android:key="pref_sync"
+        android:key="pref_name"
         android:title="@string/setting_name"
         android:defaultValue="User"
         />
 
     <EditTextPreference
-        android:key="pref_sync"
+        android:key="pref_pass"
         android:title="@string/setting_password"
         android:defaultValue="Password"
         android:password="true"
         />
 
     <EditTextPreference
-        android:key="pref_sync"
+        android:key="pref_sync_time"
         android:title="@string/setting_update_interval"
+        android:numeric="integer"
         android:defaultValue="5"
         />
 
 
     <EditTextPreference
-        android:key="pref_sync"
+        android:key="pref_server"
         android:title="@string/setting_server"
         android:defaultValue="https://derandr.000webhostapp.com"
         />

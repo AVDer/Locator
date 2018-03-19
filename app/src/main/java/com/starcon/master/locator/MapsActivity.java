@@ -1,12 +1,13 @@
 package com.starcon.master.locator;
 
 import android.Manifest;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
+import android.content.Intent;
 import android.content.IntentSender;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
@@ -64,12 +65,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Toolbar toolbar_;
 
     private FusedLocationProviderClient locationClient_;
-    private int updateInterval_ = 5000;
+    private int updateInterval_;
     private Handler handler_;
     private RequestQueue queue_;
-    private String id_ = "Andrey";
+    private String id_;
     private HashMap<String, Marker> markers_ = new HashMap<>();
     Marker me_;
+    private String serverName_;
 
     private String bfPassword = "SomeTempPassword";
 
@@ -85,8 +87,13 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         toolbar_ = findViewById(R.id.my_toolbar);
         locationClient_ = LocationServices.getFusedLocationProviderClient(this);
 
-        setSupportActionBar(toolbar_);
+        SharedPreferences sharedPref_ = PreferenceManager.getDefaultSharedPreferences(this);
+        id_ = sharedPref_.getString("pref_name", "User");
+        bfPassword = sharedPref_.getString("pref_pass", "SomeTempPassword");
+        updateInterval_ = Integer.valueOf(sharedPref_.getString("pref_sync_time", "5")) * 1000;
+        serverName_  = sharedPref_.getString("pref_server", "http://derandr.000webhostapp.com");
 
+        setSupportActionBar(toolbar_);
 
         connectButton_.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -104,8 +111,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.toolbar, menu);
         return true;
     }
@@ -119,12 +130,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 updateStatus();
                 return true;
             case R.id.action_settings:
-                FragmentManager fragmentManager = getFragmentManager();
-                FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
-                SettingsFragment settingsFragment = new SettingsFragment();
-                fragmentTransaction.replace(android.R.id.content, settingsFragment);
-                fragmentTransaction.addToBackStack(null);
-                fragmentTransaction.commit();
+                Intent intent = new Intent(this, SettingsActivity.class);
+                startActivity(intent);
                 return true;
             default:
                 // If we got here, the user's action was not recognized.
@@ -137,7 +144,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        // Add a marker in Sydney and move the camera
         me_ = mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title(id_).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
     }
 
@@ -213,6 +219,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void sendLocation(String location) {
+        if (id_.equals("User")) return;
         byte[] encoded_id = new byte[0];
         byte[] encoded_location = new byte[0];
         try {
@@ -221,7 +228,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
         }
-        String url = "http://derandr.000webhostapp.com?v1=" + LocationSecurity.byteArrayToHexString(encoded_id) + "&&v2=" + LocationSecurity.byteArrayToHexString(encoded_location);
+        String url = serverName_ + "?v1=" + LocationSecurity.byteArrayToHexString(encoded_id) + "&&v2=" + LocationSecurity.byteArrayToHexString(encoded_location);
 
         StringRequest request = new StringRequest(com.android.volley.Request.Method.GET, url,
                 new com.android.volley.Response.Listener<String>() {
@@ -240,7 +247,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     void getLocation() {
 
-        String url = "http://derandr.000webhostapp.com?v1=query";
+        String url = serverName_ + "?v1=query";
 
         Response.Listener<JSONArray> listener = new Response.Listener<JSONArray>() {
             @Override
