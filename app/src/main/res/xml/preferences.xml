@@ -10,7 +10,7 @@
     <EditTextPreference
         android:key="pref_pass"
         android:title="@string/setting_password"
-        android:defaultValue="Password"
+        android:defaultValue="SomeTempPassword"
         android:password="true"
         />
 
@@ -18,7 +18,7 @@
         android:key="pref_sync_time"
         android:title="@string/setting_update_interval"
         android:numeric="integer"
-        android:defaultValue="5"
+        android:defaultValue="10"
         />
 
 

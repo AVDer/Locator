@@ -9,4 +9,5 @@
     <string name="setting_password">Password</string>
     <string name="setting_server">Server</string>
     <string name="setting_update_interval">Update interval, s</string>
+    <string name="action_auto">Auto</string>
 </resources>

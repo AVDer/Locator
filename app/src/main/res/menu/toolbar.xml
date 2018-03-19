@@ -2,6 +2,12 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <item android:id="@+id/action_auto"
+        android:title="@string/action_auto"
+        android:icon="@drawable/ic_auto_update"
+        android:checkable="true"
+        app:showAsAction="ifRoom"/>
+
     <item android:id="@+id/action_connect"
         android:title="@string/action_connect"
         android:icon="@drawable/ic_connect"

@@ -17,6 +17,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Checkable;
 import android.widget.Toast;
 import android.support.v7.widget.Toolbar;
 
@@ -60,20 +61,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private double longitude_;
     private double latitude_;
 
-    //private EditText coordinateText_;
-    private Button connectButton_;
     private Toolbar toolbar_;
 
     private FusedLocationProviderClient locationClient_;
     private int updateInterval_;
     private Handler handler_;
     private RequestQueue queue_;
-    private String id_;
     private HashMap<String, Marker> markers_ = new HashMap<>();
-    Marker me_;
-    private String serverName_;
 
-    private String bfPassword = "SomeTempPassword";
+    private String id_;
+    private Marker me_;
+    private String serverName_;
+    private String bfPassword;
+
+    private boolean autoAupdate_ = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,29 +83,22 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
-        //coordinateText_ = findViewById(R.id.coordinates_view);
-        connectButton_ = findViewById(R.id.button_connect);
+
         toolbar_ = findViewById(R.id.my_toolbar);
         locationClient_ = LocationServices.getFusedLocationProviderClient(this);
+
 
         SharedPreferences sharedPref_ = PreferenceManager.getDefaultSharedPreferences(this);
         id_ = sharedPref_.getString("pref_name", "User");
         bfPassword = sharedPref_.getString("pref_pass", "SomeTempPassword");
-        updateInterval_ = Integer.valueOf(sharedPref_.getString("pref_sync_time", "5")) * 1000;
+        updateInterval_ = Integer.valueOf(sharedPref_.getString("pref_sync_time", "10")) * 1000;
         serverName_  = sharedPref_.getString("pref_server", "http://derandr.000webhostapp.com");
 
         setSupportActionBar(toolbar_);
 
-        connectButton_.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                updateStatus();
-            }
-        });
-
         createLocationRequest();
 
-        //handler_ = new Handler();
+        handler_ = new Handler();
         //startRepeatingTask();
         queue_ = Volley.newRequestQueue(this);
         mapFragment.getMapAsync(this);
@@ -118,6 +112,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.toolbar, menu);
+        MenuItem menuItem = menu.findItem(R.id.action_auto);
+        menuItem.setChecked(false);
         return true;
     }
 
@@ -132,6 +128,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             case R.id.action_settings:
                 Intent intent = new Intent(this, SettingsActivity.class);
                 startActivity(intent);
+                return true;
+            case R.id.action_auto:
+                autoAupdate_ = !autoAupdate_;
+                item.setChecked(autoAupdate_);
+                item.setIcon(autoAupdate_ ? R.drawable.ic_auto_pressed : R.drawable.ic_auto_update);
+                if (autoAupdate_) startRepeatingTask();
                 return true;
             default:
                 // If we got here, the user's action was not recognized.
@@ -209,7 +211,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             try {
                 updateStatus();
             } finally {
-                handler_.postDelayed(StatusChecker, updateInterval_);
+                if (autoAupdate_) handler_.postDelayed(StatusChecker, updateInterval_);
             }
         }
     };
