@@ -58,8 +58,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private final int REQUEST_CHECK_SETTINGS = 0;
 
     private GoogleMap mMap;
-    private double longitude_;
-    private double latitude_;
 
     private Toolbar toolbar_;
 
@@ -99,14 +97,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         createLocationRequest();
 
         handler_ = new Handler();
-        //startRepeatingTask();
         queue_ = Volley.newRequestQueue(this);
         mapFragment.getMapAsync(this);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
     }
 
     @Override
@@ -116,8 +108,6 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         menuItem.setChecked(false);
         return true;
     }
-
-
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -162,16 +152,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         if (location != null) {
                             me_.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
                             sendLocation(String.valueOf(location.getLatitude()) + ";" + String.valueOf(location.getLongitude()));
+                            getLocation();
                         }
                     }
                 });
-        getLocation();
     }
 
     protected void createLocationRequest() {
         LocationRequest locationRequest = new LocationRequest();
-        locationRequest.setInterval(10000);
-        locationRequest.setFastestInterval(5000);
+        locationRequest.setInterval(updateInterval_);
+        locationRequest.setFastestInterval(updateInterval_);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
