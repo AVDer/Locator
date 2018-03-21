@@ -102,6 +102,17 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        SharedPreferences sharedPref_ = PreferenceManager.getDefaultSharedPreferences(this);
+        id_ = sharedPref_.getString("pref_name", "User");
+        bfPassword = sharedPref_.getString("pref_pass", "SomeTempPassword");
+        updateInterval_ = Integer.valueOf(sharedPref_.getString("pref_sync_time", "10")) * 1000;
+        serverName_  = sharedPref_.getString("pref_server", "http://derandr.000webhostapp.com");
+        if (me_ != null) me_.setTitle(id_);
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.toolbar, menu);
         MenuItem menuItem = menu.findItem(R.id.action_auto);
