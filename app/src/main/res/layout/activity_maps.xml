@@ -24,4 +24,16 @@
         android:layout_height="match_parent"
         tools:context="com.starcon.master.locator.MapsActivity" />
 
+    <com.github.pengrad.mapscaleview.MapScaleView
+        android:id="@+id/scaleView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="4dp"
+        app:scale_color="#009"
+        app:scale_miles="true"
+        app:scale_outline="true"
+        app:scale_strokeWidth="3dp"
+        app:scale_textSize="20sp"/>
+
 </FrameLayout>

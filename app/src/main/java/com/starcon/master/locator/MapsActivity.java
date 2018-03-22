@@ -15,9 +15,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
-import android.widget.Checkable;
 import android.widget.Toast;
 import android.support.v7.widget.Toolbar;
 
@@ -28,6 +25,7 @@ import com.android.volley.VolleyError;
 import com.android.volley.toolbox.JsonArrayRequest;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.github.pengrad.mapscaleview.MapScaleView;
 import com.google.android.gms.common.api.ResolvableApiException;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationRequest;
@@ -35,10 +33,12 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsResponse;
 import com.google.android.gms.location.SettingsClient;
+import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -53,26 +53,31 @@ import org.json.JSONObject;
 import java.security.GeneralSecurityException;
 import java.util.HashMap;
 
-public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback {
+public class MapsActivity extends AppCompatActivity implements OnMapReadyCallback,
+        GoogleMap.OnCameraMoveListener,
+GoogleMap.OnCameraIdleListener,
+GoogleMap.OnCameraChangeListener,
+GoogleMap.OnMarkerClickListener,
+GoogleMap.OnMapClickListener{
 
     private final int REQUEST_CHECK_SETTINGS = 0;
 
     private GoogleMap mMap;
+    private MapScaleView mScaleView;
 
-    private Toolbar toolbar_;
+    private FusedLocationProviderClient mLocationClient;
+    private int mUpdateInterval;
+    private Handler mRunHandler;
+    private RequestQueue mRequestQueue;
+    private HashMap<String, Marker> mMarkers = new HashMap<>();
 
-    private FusedLocationProviderClient locationClient_;
-    private int updateInterval_;
-    private Handler handler_;
-    private RequestQueue queue_;
-    private HashMap<String, Marker> markers_ = new HashMap<>();
+    private String mMyId;
+    private Marker mMyMarker;
+    private Marker mActiveMarker;
+    private String mServerName;
+    private String mBfPassword;
 
-    private String id_;
-    private Marker me_;
-    private String serverName_;
-    private String bfPassword;
-
-    private boolean autoAupdate_ = false;
+    private boolean mAutoUpdate = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,22 +87,22 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
 
-        toolbar_ = findViewById(R.id.my_toolbar);
-        locationClient_ = LocationServices.getFusedLocationProviderClient(this);
+        Toolbar mToolbar = findViewById(R.id.my_toolbar);
+        mLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
 
         SharedPreferences sharedPref_ = PreferenceManager.getDefaultSharedPreferences(this);
-        id_ = sharedPref_.getString("pref_name", "User");
-        bfPassword = sharedPref_.getString("pref_pass", "SomeTempPassword");
-        updateInterval_ = Integer.valueOf(sharedPref_.getString("pref_sync_time", "10")) * 1000;
-        serverName_  = sharedPref_.getString("pref_server", "http://derandr.000webhostapp.com");
+        mMyId = sharedPref_.getString("pref_name", "User");
+        mBfPassword = sharedPref_.getString("pref_pass", "SomeTempPassword");
+        mUpdateInterval = Integer.valueOf(sharedPref_.getString("pref_sync_time", "10")) * 1000;
+        mServerName = sharedPref_.getString("pref_server", "http://derandr.000webhostapp.com");
 
-        setSupportActionBar(toolbar_);
+        setSupportActionBar(mToolbar);
 
         createLocationRequest();
 
-        handler_ = new Handler();
-        queue_ = Volley.newRequestQueue(this);
+        mRunHandler = new Handler();
+        mRequestQueue = Volley.newRequestQueue(this);
         mapFragment.getMapAsync(this);
     }
 
@@ -105,11 +110,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     protected void onResume() {
         super.onResume();
         SharedPreferences sharedPref_ = PreferenceManager.getDefaultSharedPreferences(this);
-        id_ = sharedPref_.getString("pref_name", "User");
-        bfPassword = sharedPref_.getString("pref_pass", "SomeTempPassword");
-        updateInterval_ = Integer.valueOf(sharedPref_.getString("pref_sync_time", "10")) * 1000;
-        serverName_  = sharedPref_.getString("pref_server", "http://derandr.000webhostapp.com");
-        if (me_ != null) me_.setTitle(id_);
+        mMyId = sharedPref_.getString("pref_name", "User");
+        mBfPassword = sharedPref_.getString("pref_pass", "SomeTempPassword");
+        mUpdateInterval = Integer.valueOf(sharedPref_.getString("pref_sync_time", "10")) * 1000;
+        mServerName = sharedPref_.getString("pref_server", "http://derandr.000webhostapp.com");
+        if (mMyMarker != null) mMyMarker.setTitle(mMyId);
     }
 
     @Override
@@ -131,10 +136,10 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 startActivity(intent);
                 return true;
             case R.id.action_auto:
-                autoAupdate_ = !autoAupdate_;
-                item.setChecked(autoAupdate_);
-                item.setIcon(autoAupdate_ ? R.drawable.ic_auto_pressed : R.drawable.ic_auto_update);
-                if (autoAupdate_) startRepeatingTask();
+                mAutoUpdate = !mAutoUpdate;
+                item.setChecked(mAutoUpdate);
+                item.setIcon(mAutoUpdate ? R.drawable.ic_auto_pressed : R.drawable.ic_auto_update);
+                if (mAutoUpdate) startRepeatingTask();
                 return true;
             default:
                 // If we got here, the user's action was not recognized.
@@ -147,7 +152,46 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        me_ = mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title(id_).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+        mMyMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title(mMyId).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
+        mActiveMarker = mMyMarker;
+        mScaleView = (MapScaleView) findViewById(R.id.scaleView);
+        mScaleView.metersOnly();
+        CameraPosition cameraPosition = mMap.getCameraPosition();
+        mScaleView.update(cameraPosition.zoom, cameraPosition.target.latitude);
+
+        googleMap.setOnCameraMoveListener(this);
+        googleMap.setOnCameraIdleListener(this);
+        googleMap.setOnCameraChangeListener(this);
+        googleMap.setOnMarkerClickListener(this);
+        googleMap.setOnMapClickListener(this);
+    }
+
+    @Override
+    public void onCameraMove() {
+        CameraPosition cameraPosition = mMap.getCameraPosition();
+        mScaleView.update(cameraPosition.zoom, cameraPosition.target.latitude);
+    }
+
+    @Override
+    public void onCameraIdle() {
+        CameraPosition cameraPosition = mMap.getCameraPosition();
+        mScaleView.update(cameraPosition.zoom, cameraPosition.target.latitude);
+    }
+
+    @Override
+    public void onCameraChange(CameraPosition cameraPosition) {
+        mScaleView.update(cameraPosition.zoom, cameraPosition.target.latitude);
+    }
+
+    @Override
+    public boolean onMarkerClick(Marker marker) {
+        mActiveMarker = marker;
+        return false;
+    }
+
+    @Override
+    public void onMapClick(LatLng latLng) {
+        mActiveMarker = null;
     }
 
     void updateStatus() {
@@ -156,23 +200,24 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             return;
         }
-        locationClient_.getLastLocation()
+        mLocationClient.getLastLocation()
                 .addOnSuccessListener(MapsActivity.this, new OnSuccessListener<Location>() {
                     @Override
                     public void onSuccess(Location location) {
                         if (location != null) {
-                            me_.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
+                            mMyMarker.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
                             sendLocation(String.valueOf(location.getLatitude()) + ";" + String.valueOf(location.getLongitude()));
                             getLocation();
                         }
                     }
                 });
+        if (mActiveMarker != null) mMap.animateCamera(CameraUpdateFactory.newLatLng(mActiveMarker.getPosition()));
     }
 
     protected void createLocationRequest() {
         LocationRequest locationRequest = new LocationRequest();
-        locationRequest.setInterval(updateInterval_);
-        locationRequest.setFastestInterval(updateInterval_);
+        locationRequest.setInterval(mUpdateInterval);
+        locationRequest.setFastestInterval(mUpdateInterval);
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
 
         LocationSettingsRequest.Builder builder = new LocationSettingsRequest.Builder()
@@ -212,7 +257,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             try {
                 updateStatus();
             } finally {
-                if (autoAupdate_) handler_.postDelayed(StatusChecker, updateInterval_);
+                if (mAutoUpdate) mRunHandler.postDelayed(StatusChecker, mUpdateInterval);
             }
         }
     };
@@ -222,16 +267,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void sendLocation(String location) {
-        if (id_.equals("User")) return;
+        if (mMyId.equals("User")) return;
         byte[] encoded_id = new byte[0];
         byte[] encoded_location = new byte[0];
         try {
-            encoded_id = LocationSecurity.encrypt(bfPassword, id_);
-            encoded_location = LocationSecurity.encrypt(bfPassword, location);
+            encoded_id = LocationSecurity.encrypt(mBfPassword, mMyId);
+            encoded_location = LocationSecurity.encrypt(mBfPassword, location);
         } catch (GeneralSecurityException e) {
             e.printStackTrace();
         }
-        String url = serverName_ + "?v1=" + LocationSecurity.byteArrayToHexString(encoded_id) + "&&v2=" + LocationSecurity.byteArrayToHexString(encoded_location);
+        String url = mServerName + "?v1=" + LocationSecurity.byteArrayToHexString(encoded_id) + "&&v2=" + LocationSecurity.byteArrayToHexString(encoded_location);
 
         StringRequest request = new StringRequest(com.android.volley.Request.Method.GET, url,
                 new com.android.volley.Response.Listener<String>() {
@@ -245,12 +290,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 // No action
             }
         });
-        queue_.add(request);
+        mRequestQueue.add(request);
     }
 
     void getLocation() {
 
-        String url = serverName_ + "?v1=query";
+        String url = mServerName + "?v1=query";
 
         Response.Listener<JSONArray> listener = new Response.Listener<JSONArray>() {
             @Override
@@ -262,18 +307,18 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                         String decodedID = "";
                         String decodedLocation = "";
                         try {
-                            decodedID = LocationSecurity.decrypt(bfPassword, LocationSecurity.hexStringToByteArray(object.getString("N")));
-                            decodedLocation = LocationSecurity.decrypt(bfPassword, LocationSecurity.hexStringToByteArray(object.getString("C")));
+                            decodedID = LocationSecurity.decrypt(mBfPassword, LocationSecurity.hexStringToByteArray(object.getString("N")));
+                            decodedLocation = LocationSecurity.decrypt(mBfPassword, LocationSecurity.hexStringToByteArray(object.getString("C")));
                         } catch (GeneralSecurityException e) {
                             e.printStackTrace();
                         }
 
-                        if (!decodedID.equals(id_)) {
+                        if (!decodedID.equals(mMyId)) {
                             Log.d("Record: ", "N: " + decodedID + " C: " + decodedLocation);
                             String[] data = decodedLocation.split(";");
-                            Marker marker = markers_.get(decodedID);
+                            Marker marker = mMarkers.get(decodedID);
                             if (marker == null) {
-                                markers_.put(decodedID, mMap.addMarker(new MarkerOptions()
+                                mMarkers.put(decodedID, mMap.addMarker(new MarkerOptions()
                                         .position(new LatLng(Double.valueOf(data[0]), Double.valueOf(data[1])))
                                         .title(decodedID)
                                         .icon(BitmapDescriptorFactory.defaultMarker(MarkerProperties.MarkerColourByIndex(i)))));
@@ -297,7 +342,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         };
 
         JsonArrayRequest request = new JsonArrayRequest(Request.Method.GET, url, "", listener, error_listener);
-        queue_.add(request);
+        mRequestQueue.add(request);
 
     }
 }
