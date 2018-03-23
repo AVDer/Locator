@@ -43,6 +43,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".SettingsActivity" />
+
+        <service android:name=".LocationService" />
     </application>
 
 </manifest>
