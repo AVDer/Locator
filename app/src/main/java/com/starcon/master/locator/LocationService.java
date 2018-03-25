@@ -155,11 +155,8 @@ public class LocationService extends Service implements LocationListener {
     private void serviceDataUpdate(Location location) {
         String my_location = String.valueOf(location.getLatitude()) + ";" + String.valueOf(location.getLongitude());
         mIntent.putExtra("me", my_location);
-        String other_result = mOtherResult.toString();
-        if (!other_result.isEmpty()) mIntent.putExtra("other", other_result);
-        sendBroadcast(mIntent);
-        sendLocation(my_location);
         getLocation();
+        sendLocation(my_location);
     }
 
     void sendLocation(String location) {
@@ -196,6 +193,7 @@ public class LocationService extends Service implements LocationListener {
         Response.Listener<JSONArray> listener = new Response.Listener<JSONArray>() {
             @Override
             public void onResponse(JSONArray response) {
+                mOtherResult.setLength(0);
                 for (int i = 0; i < response.length(); i++) {
                     try {
                         JSONObject object = response.getJSONObject(i);
@@ -212,12 +210,15 @@ public class LocationService extends Service implements LocationListener {
                         if (!decodedID.equals(mMyId)) {
                             Log.d("Record: ", "N: " + decodedID + " C: " + decodedLocation);
                             String[] data = decodedLocation.split(";");
-                            mOtherResult.append(decodedID).append("+").append(data[0]).append(";").append(data[1]).append(":");
+                            mOtherResult.append(decodedID).append(";").append(data[0]).append(";").append(data[1]).append(":");
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();
                     }
                 }
+                String other_result = mOtherResult.toString();
+                if (!other_result.isEmpty()) mIntent.putExtra("other", other_result);
+                sendBroadcast(mIntent);
             }
         };
 

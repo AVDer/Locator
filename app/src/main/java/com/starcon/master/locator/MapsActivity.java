@@ -176,17 +176,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (intent.hasExtra("other")) {
                 String other_location = intent.getStringExtra("other");
                 String[] records = other_location.split(":");
-                for (int i = 0; i < records.length - 1; ++i) {
-                    String[] record = records[i].split("\\+");
-                    String[] coords = record[1].split(";");
+                for (int i = 0; i < records.length; ++i) {
+                    String[] record = records[i].split(";");
                     Marker marker = mMarkers.get(record[0]);
                     if (marker == null) {
                         mMarkers.put(record[0], mMap.addMarker(new MarkerOptions()
-                                .position(new LatLng(Double.valueOf(coords[0]), Double.valueOf(coords[1])))
+                                .position(new LatLng(Double.valueOf(record[1]), Double.valueOf(record[2])))
                                 .title(record[0])
                                 .icon(BitmapDescriptorFactory.defaultMarker(MarkerProperties.MarkerColourByIndex(i)))));
                     } else {
-                        marker.setPosition(new LatLng(Double.valueOf(coords[0]), Double.valueOf(coords[1])));
+                        marker.setPosition(new LatLng(Double.valueOf(record[1]), Double.valueOf(record[2])));
                     }
                 }
             }
