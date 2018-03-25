@@ -34,13 +34,12 @@ public class LocationService extends Service implements LocationListener {
 
     boolean isGPSEnable = false;
     boolean isNetworkEnable = false;
-    double latitude, longitude;
     LocationManager locationManager;
     Location location;
     private Handler mHandler = new Handler();
     private Timer mTimer = null;
     public static String str_receiver = "location.service.receiver";
-    Intent intent;
+    Intent mIntent;
 
     private int mUpdateInterval;
     private String mServerName;
@@ -53,28 +52,19 @@ public class LocationService extends Service implements LocationListener {
     public LocationService() {
     }
 
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        mRequestQueue = Volley.newRequestQueue(this);
+        mTimer = new Timer();
+        mIntent = new Intent(str_receiver);
+        mOtherResult = new StringBuilder();
+    }
+
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
         return null;
-    }
-
-    @Override
-    public void onCreate() {
-        super.onCreate();
-
-        SharedPreferences mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        mUpdateInterval = Integer.valueOf(mSharedPreferences.getString("pref_sync_time", "10")) * 1000;
-        mServerName = mSharedPreferences.getString("pref_server", "http://derandr.000webhostapp.com");
-        mBfPassword = mSharedPreferences.getString("pref_pass", "SomeTempPassword");
-        mMyId = mSharedPreferences.getString("pref_name", "User");
-
-        mRequestQueue = Volley.newRequestQueue(this);
-
-        mTimer = new Timer();
-        mTimer.schedule(new TimerTaskToGetLocation(), 5, mUpdateInterval);
-        intent = new Intent(str_receiver);
-        mOtherResult = new StringBuilder();
     }
 
     @Override
@@ -97,6 +87,24 @@ public class LocationService extends Service implements LocationListener {
 
     }
 
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        SharedPreferences mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        mUpdateInterval = Integer.valueOf(mSharedPreferences.getString("pref_sync_time", "10")) * 1000;
+        mServerName = mSharedPreferences.getString("pref_server", "http://derandr.000webhostapp.com");
+        mBfPassword = mSharedPreferences.getString("pref_pass", "SomeTempPassword");
+        mMyId = mSharedPreferences.getString("pref_name", "User");
+        mTimer.schedule(new TimerTaskToGetLocation(), 5, mUpdateInterval);
+
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        mTimer.cancel();
+    }
+
     private void serviceGetLocation() {
         locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
         isGPSEnable = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
@@ -108,12 +116,8 @@ public class LocationService extends Service implements LocationListener {
             if (locationManager != null) {
                 location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
                 if (location != null) {
-
                     Log.e("latitude", location.getLatitude() + "");
                     Log.e("longitude", location.getLongitude() + "");
-
-                    latitude = location.getLatitude();
-                    longitude = location.getLongitude();
                     serviceDataUpdate(location);
                 }
             }
@@ -126,8 +130,6 @@ public class LocationService extends Service implements LocationListener {
                 if (location != null) {
                     Log.e("latitude", location.getLatitude() + "");
                     Log.e("longitude", location.getLongitude() + "");
-                    latitude = location.getLatitude();
-                    longitude = location.getLongitude();
                     serviceDataUpdate(location);
                 }
             }
@@ -152,10 +154,10 @@ public class LocationService extends Service implements LocationListener {
 
     private void serviceDataUpdate(Location location) {
         String my_location = String.valueOf(location.getLatitude()) + ";" + String.valueOf(location.getLongitude());
-        intent.putExtra("me", my_location);
+        mIntent.putExtra("me", my_location);
         String other_result = mOtherResult.toString();
-        if (!other_result.isEmpty()) intent.putExtra("other", other_result);
-        sendBroadcast(intent);
+        if (!other_result.isEmpty()) mIntent.putExtra("other", other_result);
+        sendBroadcast(mIntent);
         sendLocation(my_location);
         getLocation();
     }
