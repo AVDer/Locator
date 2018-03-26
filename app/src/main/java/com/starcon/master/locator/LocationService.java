@@ -12,6 +12,7 @@ import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import android.text.format.Time;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
@@ -153,10 +154,14 @@ public class LocationService extends Service implements LocationListener {
     }
 
     private void serviceDataUpdate(Location location) {
+        Time time = new Time();
+        time.setToNow();
+        time.switchTimezone("Etc/GMT");
+        String string_time = time.format2445();
         String my_location = String.valueOf(location.getLatitude()) + ";" + String.valueOf(location.getLongitude());
         mIntent.putExtra("me", my_location);
         getLocation();
-        sendLocation(my_location);
+        sendLocation(my_location + ";" + string_time);
     }
 
     void sendLocation(String location) {
@@ -210,7 +215,7 @@ public class LocationService extends Service implements LocationListener {
                         if (!decodedID.equals(mMyId)) {
                             Log.d("Record: ", "N: " + decodedID + " C: " + decodedLocation);
                             String[] data = decodedLocation.split(";");
-                            mOtherResult.append(decodedID).append(";").append(data[0]).append(";").append(data[1]).append(":");
+                            mOtherResult.append(decodedID).append(";").append(decodedLocation).append(":");
                         }
                     } catch (JSONException e) {
                         e.printStackTrace();

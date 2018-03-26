@@ -12,6 +12,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.support.v7.widget.Toolbar;
+import android.text.format.Time;
 
 import com.github.pengrad.mapscaleview.MapScaleView;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -44,6 +45,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Marker mMyMarker;
     private Marker mActiveMarker;
     private Intent mLocationIntent;
+    private Time mTime = new Time();
 
     private boolean mServiceRunning = false;
 
@@ -178,14 +180,20 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                 String[] records = other_location.split(":");
                 for (int i = 0; i < records.length; ++i) {
                     String[] record = records[i].split(";");
+                    if (record.length < 4) continue;
                     Marker marker = mMarkers.get(record[0]);
+                    mTime.switchTimezone("Etc/GMT");
+                    mTime.parse(record[3]);
+                    mTime.switchTimezone(Time.getCurrentTimezone());
+                    String time_string = mTime.format("%H:%M:%S");
                     if (marker == null) {
                         mMarkers.put(record[0], mMap.addMarker(new MarkerOptions()
                                 .position(new LatLng(Double.valueOf(record[1]), Double.valueOf(record[2])))
-                                .title(record[0])
+                                .title(record[0] + "/" + time_string)
                                 .icon(BitmapDescriptorFactory.defaultMarker(MarkerProperties.MarkerColourByIndex(i)))));
                     } else {
                         marker.setPosition(new LatLng(Double.valueOf(record[1]), Double.valueOf(record[2])));
+                        marker.setTitle(record[0] + "/" + time_string);
                     }
                 }
             }
