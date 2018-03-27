@@ -182,7 +182,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     String[] record = records[i].split(";");
                     if (record.length < 4) continue;
                     Marker marker = mMarkers.get(record[0]);
-                    mTime.switchTimezone("Etc/GMT");
+                    mTime.switchTimezone("UTC");
                     mTime.parse(record[3]);
                     mTime.switchTimezone(Time.getCurrentTimezone());
                     String time_string = mTime.format("%H:%M:%S");

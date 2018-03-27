@@ -156,7 +156,7 @@ public class LocationService extends Service implements LocationListener {
     private void serviceDataUpdate(Location location) {
         Time time = new Time();
         time.setToNow();
-        time.switchTimezone("Etc/GMT");
+        time.switchTimezone("UTC");
         String string_time = time.format2445();
         String my_location = String.valueOf(location.getLatitude()) + ";" + String.valueOf(location.getLongitude());
         mIntent.putExtra("me", my_location);
