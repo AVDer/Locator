@@ -6,13 +6,19 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.support.v7.widget.Toolbar;
 import android.text.format.Time;
+import android.view.View;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.github.pengrad.mapscaleview.MapScaleView;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -125,6 +131,38 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+
+        mMap.setInfoWindowAdapter(new GoogleMap.InfoWindowAdapter() {
+
+            @Override
+            public View getInfoWindow(Marker arg0) {
+                return null;
+            }
+
+            @Override
+            public View getInfoContents(Marker marker) {
+
+                LinearLayout info = new LinearLayout(MapsActivity.this);
+                info.setOrientation(LinearLayout.VERTICAL);
+
+                TextView title = new TextView(MapsActivity.this);
+                title.setTextColor(Color.BLACK);
+                title.setGravity(Gravity.CENTER);
+                title.setTypeface(null, Typeface.BOLD);
+                title.setText(marker.getTitle());
+
+                TextView snippet = new TextView(MapsActivity.this);
+                snippet.setTextColor(Color.GRAY);
+                snippet.setGravity(Gravity.CENTER);
+                snippet.setText(marker.getSnippet());
+
+                info.addView(title);
+                info.addView(snippet);
+
+                return info;
+            }
+        });
+
         mMyMarker = mMap.addMarker(new MarkerOptions().position(new LatLng(0, 0)).title(mMyId).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_RED)));
         mActiveMarker = mMyMarker;
         mScaleView = (MapScaleView) findViewById(R.id.scaleView);
@@ -185,15 +223,16 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mTime.switchTimezone("UTC");
                     mTime.parse(record[3]);
                     mTime.switchTimezone(Time.getCurrentTimezone());
-                    String time_string = mTime.format("%H:%M:%S");
+                    String time_string = mTime.format("%H:%M:%S\n%Y-%m-%d");
                     if (marker == null) {
                         mMarkers.put(record[0], mMap.addMarker(new MarkerOptions()
                                 .position(new LatLng(Double.valueOf(record[1]), Double.valueOf(record[2])))
-                                .title(record[0] + "/" + time_string)
+                                .title(record[0]).snippet(time_string)
                                 .icon(BitmapDescriptorFactory.defaultMarker(MarkerProperties.MarkerColourByIndex(i)))));
                     } else {
                         marker.setPosition(new LatLng(Double.valueOf(record[1]), Double.valueOf(record[2])));
-                        marker.setTitle(record[0] + "/" + time_string);
+                        marker.setTitle(record[0]);
+                        marker.setSnippet(time_string);
                     }
                 }
             }

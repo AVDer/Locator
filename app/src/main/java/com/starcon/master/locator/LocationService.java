@@ -42,7 +42,6 @@ public class LocationService extends Service implements LocationListener {
     public static String str_receiver = "location.service.receiver";
     Intent mIntent;
 
-    private int mUpdateInterval;
     private String mServerName;
     private RequestQueue mRequestQueue;
     private String mBfPassword;
@@ -91,7 +90,7 @@ public class LocationService extends Service implements LocationListener {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         SharedPreferences mSharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        mUpdateInterval = Integer.valueOf(mSharedPreferences.getString("pref_sync_time", "10")) * 1000;
+        int mUpdateInterval = Integer.valueOf(mSharedPreferences.getString("pref_sync_time", "10")) * 1000;
         mServerName = mSharedPreferences.getString("pref_server", "http://derandr.000webhostapp.com");
         mBfPassword = mSharedPreferences.getString("pref_pass", "SomeTempPassword");
         mMyId = mSharedPreferences.getString("pref_name", "User");
