@@ -1,8 +1,10 @@
 package com.starcon.master.locator;
 
+import android.Manifest;
 import android.app.Service;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -11,6 +13,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
 import android.support.annotation.Nullable;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 import android.text.format.Time;
 
@@ -36,7 +39,7 @@ public class LocationService extends Service implements LocationListener {
     boolean isGPSEnable = false;
     boolean isNetworkEnable = false;
     LocationManager locationManager;
-    Location location;
+    Location m_location;
     private Handler mHandler = new Handler();
     private Timer mTimer = null;
     public static String str_receiver = "location.service.receiver";
@@ -69,7 +72,9 @@ public class LocationService extends Service implements LocationListener {
 
     @Override
     public void onLocationChanged(Location location) {
-
+        m_location = location;
+        Log.e("latitude", m_location.getLatitude() + "");
+        Log.e("longitude", m_location.getLongitude() + "");
     }
 
     @Override
@@ -96,6 +101,23 @@ public class LocationService extends Service implements LocationListener {
         mMyId = mSharedPreferences.getString("pref_name", "User");
         mTimer.schedule(new TimerTaskToGetLocation(), 5, mUpdateInterval);
 
+        locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
+        if (locationManager != null) {
+            isGPSEnable = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+            isNetworkEnable = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        } else {
+            Log.e("location", "Location manager isn't available");
+        }
+
+        if (isNetworkEnable) {
+            if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                Log.e("location", "No permissions granted");
+            }
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 10000, 10, this);
+        } else if (isGPSEnable) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 10000, 10, this);
+        }
+
         return super.onStartCommand(intent, flags, startId);
     }
 
@@ -106,36 +128,7 @@ public class LocationService extends Service implements LocationListener {
     }
 
     private void serviceGetLocation() {
-        locationManager = (LocationManager) getApplicationContext().getSystemService(LOCATION_SERVICE);
-        isGPSEnable = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        isNetworkEnable = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-
-        if (isNetworkEnable) {
-            location = null;
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0, this);
-            if (locationManager != null) {
-                location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                if (location != null) {
-                    Log.e("latitude", location.getLatitude() + "");
-                    Log.e("longitude", location.getLongitude() + "");
-                    serviceDataUpdate(location);
-                }
-            }
-
-        } else if (isGPSEnable) {
-            location = null;
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, this);
-            if (locationManager != null) {
-                location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                if (location != null) {
-                    Log.e("latitude", location.getLatitude() + "");
-                    Log.e("longitude", location.getLongitude() + "");
-                    serviceDataUpdate(location);
-                }
-            }
-        }
-
-
+        if (m_location != null) serviceDataUpdate();
     }
 
     private class TimerTaskToGetLocation extends TimerTask {
@@ -152,12 +145,12 @@ public class LocationService extends Service implements LocationListener {
         }
     }
 
-    private void serviceDataUpdate(Location location) {
+    private void serviceDataUpdate() {
         Time time = new Time();
         time.setToNow();
         time.switchTimezone("UTC");
         String string_time = time.format2445();
-        String my_location = String.valueOf(location.getLatitude()) + ";" + String.valueOf(location.getLongitude());
+        String my_location = String.valueOf(m_location.getLatitude()) + ";" + String.valueOf(m_location.getLongitude());
         mIntent.putExtra("me", my_location);
         getLocation();
         sendLocation(my_location + ";" + string_time);
@@ -213,7 +206,6 @@ public class LocationService extends Service implements LocationListener {
 
                         if (!decodedID.equals(mMyId)) {
                             Log.d("Record: ", "N: " + decodedID + " C: " + decodedLocation);
-                            String[] data = decodedLocation.split(";");
                             mOtherResult.append(decodedID).append(";").append(decodedLocation).append(":");
                         }
                     } catch (JSONException e) {

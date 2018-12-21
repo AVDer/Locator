@@ -21,8 +21,11 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.github.pengrad.mapscaleview.MapScaleView;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.MapsInitializer;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
@@ -54,6 +57,8 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
     private Time mTime = new Time();
 
     private boolean mServiceRunning = false;
+
+    //protected GoogleApiClient mGoogleApiClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -211,7 +216,7 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
             if (intent.hasExtra("me")) {
                 String my_location = intent.getStringExtra("me");
                 String[] data = my_location.split(";");
-                mMyMarker.setPosition(new LatLng(Double.valueOf(data[0]), Double.valueOf(data[1])));
+                if (mMyMarker != null) mMyMarker.setPosition(new LatLng(Double.valueOf(data[0]), Double.valueOf(data[1])));
             }
             if (intent.hasExtra("other")) {
                 String other_location = intent.getStringExtra("other");
@@ -224,11 +229,12 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
                     mTime.parse(record[3]);
                     mTime.switchTimezone(Time.getCurrentTimezone());
                     String time_string = mTime.format("%H:%M:%S\n%Y-%m-%d");
-                    if (marker == null) {
+                    if (marker == null && mMap != null) {
                         mMarkers.put(record[0], mMap.addMarker(new MarkerOptions()
                                 .position(new LatLng(Double.valueOf(record[1]), Double.valueOf(record[2])))
                                 .title(record[0]).snippet(time_string)
                                 .icon(BitmapDescriptorFactory.defaultMarker(MarkerProperties.MarkerColourByIndex(i)))));
+
                     } else {
                         marker.setPosition(new LatLng(Double.valueOf(record[1]), Double.valueOf(record[2])));
                         marker.setTitle(record[0]);
