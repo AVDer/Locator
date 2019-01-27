@@ -33,7 +33,6 @@ import java.security.GeneralSecurityException;
 import java.util.Timer;
 import java.util.TimerTask;
 
-
 public class LocationService extends Service implements LocationListener {
 
     boolean isGPSEnable = false;

@@ -1,11 +1,13 @@
 package com.starcon.master.locator;
 
+import android.Manifest;
 import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.preference.PreferenceManager;
@@ -45,6 +47,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private final int REQUEST_CHECK_SETTINGS = 0;
 
+    private static final String[] LOCATION_PERMS={
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+    };
+
     private GoogleMap mMap;
     private MapScaleView mScaleView;
 
@@ -78,6 +85,11 @@ public class MapsActivity extends AppCompatActivity implements OnMapReadyCallbac
         mLocationIntent = new Intent(getApplicationContext(), LocationService.class);
 
         setSupportActionBar(mToolbar);
+
+        if (checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
+                || checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(LOCATION_PERMS, 42);
+        }
 
         mapFragment.getMapAsync(this);
     }
